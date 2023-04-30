@@ -7,4 +7,5 @@ type Repo struct {
 	Description string
 	Language    string
 	Stars       int
+	StarsToday  int
 }

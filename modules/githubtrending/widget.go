@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/gocolly/colly/v2"
 	ghb "github.com/google/go-github/v32/github"
 )
 
@@ -24,11 +25,12 @@ const (
 type Widget struct {
 	view.ScrollableWidget
 
-	repos    []Repo
-	settings *Settings
-	err      error
-	client   *ghb.Client
-	showType ShowType
+	repos     []Repo
+	settings  *Settings
+	err       error
+	client    *ghb.Client
+	collector *colly.Collector
+	showType  ShowType
 }
 
 func NewWidget(tviewApp *tview.Application, redrawChan chan bool, pages *tview.Pages, settings *Settings) *Widget {
@@ -38,7 +40,13 @@ func NewWidget(tviewApp *tview.Application, redrawChan chan bool, pages *tview.P
 		showType:         ShowNameDescLangStars,
 	}
 
-	widget.client = ghb.NewClient(nil)
+	if settings.useScraper {
+		widget.collector = colly.NewCollector(
+			colly.AllowURLRevisit(),
+		)
+	} else {
+		widget.client = ghb.NewClient(nil)
+	}
 
 	widget.SetRenderFunction(widget.Render)
 	widget.initializeKeyboardControls()
@@ -53,7 +61,15 @@ func (widget *Widget) Refresh() {
 		return
 	}
 
-	repos, err := GetRepos(widget.client, widget.settings)
+	var repos []Repo
+	var err error
+
+	if widget.settings.useScraper {
+		repos, err = ScrapeRepos(widget.collector, widget.settings)
+	} else {
+		repos, err = FetchRepos(widget.client, widget.settings)
+	}
+
 	if err != nil {
 		widget.err = err
 		widget.repos = nil
@@ -90,57 +106,50 @@ func (widget *Widget) content() (string, string, bool) {
 		row = append(row, rowNumber)
 		switch widget.showType {
 		case ShowName:
-			row = append(row, fmt.Sprintf(
-				`[%s]%s`,
-				widget.settings.colors.repo,
-				repo.Name,
-			))
+			row = appendText(row, widget.settings.colors.repo, repo.Name)
 		case ShowNameDesc:
-			row = append(row, fmt.Sprintf(
-				`[%s]%s [%s]%s`,
-				widget.settings.colors.repo,
-				repo.Name,
-				widget.RowColor(idx),
-				repo.Description,
-			))
+			row = appendText(row, widget.settings.colors.repo, repo.Name)
+			row = appendText(row, widget.RowColor(idx), repo.Description)
 		case ShowNameDescLang:
 			if repo.Language != "" {
-				row = append(row, fmt.Sprintf(
-					`[%s]%s`,
-					widget.settings.colors.lang,
-					repo.Language,
-				))
+				row = appendText(row, widget.settings.colors.lang, repo.Language)
 			}
-			row = append(row, fmt.Sprintf(
-				`[%s]%s [%s]%s`,
-				widget.settings.colors.repo,
-				repo.Name,
-				widget.RowColor(idx),
-				repo.Description,
-			))
+			row = appendText(row, widget.settings.colors.repo, repo.Name)
+			row = appendText(row, widget.RowColor(idx), repo.Description)
 		case ShowNameDescLangStars:
 			if repo.Language != "" {
+				row = appendText(row, widget.settings.colors.lang, repo.Language)
+			}
+			row = appendText(row, widget.settings.colors.repo, repo.Name)
+			if repo.StarsToday != -1 {
 				row = append(row, fmt.Sprintf(
-					`[%s]%s`,
-					widget.settings.colors.lang,
-					repo.Language,
+					"[%s](⭐️%s⬆️%s)",
+					widget.settings.colors.stars,
+					formatThousands(repo.Stars),
+					formatThousands(repo.StarsToday),
+				))
+			} else {
+				row = append(row, fmt.Sprintf(
+					"[%s](⭐️%s)",
+					widget.settings.colors.stars,
+					formatThousands(repo.Stars),
 				))
 			}
-			row = append(row, fmt.Sprintf(
-				`[%s]%s [%s](⭐️%s) [%s]%s`,
-				widget.settings.colors.repo,
-				repo.Name,
-				widget.settings.colors.stars,
-				formatThousands(repo.Stars),
-				widget.RowColor(idx),
-				repo.Description,
-			))
+			row = appendText(row, widget.RowColor(idx), repo.Description)
 		}
 
 		str += utils.HighlightableHelper(widget.View, strings.Join(row, " "), idx, len(repo.Name))
 	}
 
 	return title, str, false
+}
+
+func appendText(row []string, color string, value string) []string {
+	return append(row, fmt.Sprintf(
+		`[%s]%s`,
+		color,
+		value,
+	))
 }
 
 func formatThousands(value int) string {

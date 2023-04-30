@@ -8,7 +8,7 @@ import (
 const (
 	defaultFocusable     = true
 	defaultTitle         = "GitHub Trending"
-	defaultPeriod        = "day"
+	defaultSince         = "daily"
 	defaultNumberOfRepos = 10
 	defaultMinStars      = 0
 	defaultUseScraper    = false
@@ -29,7 +29,7 @@ type Settings struct {
 	langs       []string `help:"Filter results by programming languages" optional:"true"`
 	minStars    int      `help:"Minimum amount of stars" default:"0" optional:"true"`
 	spokenLangs []string `help:"Filter results by spoken languages. Works only with scraper enabled, otherwise ignored" optional:"true"`
-	period      string   `help:"Time span for the trending repositories. Options are 'day', 'week' and 'month'" default:"day" optional:"true"`
+	since       string   `help:"Time period for the trending repositories. Options are 'daily', 'weekly' and 'monthly'" default:"daily" optional:"true"`
 	useScraper  bool     `help:"Use more advanced, but error-prone scraping of https://github.com/trending instead of GitHub API. Allows filtering by spoken language" default:"false" optional:"true"`
 }
 
@@ -42,7 +42,7 @@ func NewSettingsFromYAML(name string, ymlConfig *config.Config, globalConfig *co
 		minStars:    ymlConfig.UInt("minStars", defaultMinStars),
 		spokenLangs: cfg.ParseAsMapOrList(ymlConfig, "spokenLangs"),
 		useScraper:  ymlConfig.UBool("useScraper", defaultUseScraper),
-		period:      ymlConfig.UString("period", defaultPeriod),
+		since:       ymlConfig.UString("since", defaultSince),
 	}
 
 	settings.colors.repo = ymlConfig.UString("colors.repo", "green")

@@ -3,7 +3,6 @@ package githubtrending
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -12,8 +11,8 @@ import (
 
 /* -------------------- Exported Functions -------------------- */
 
-func GetRepos(client *ghb.Client, settings *Settings) ([]Repo, error) {
-	queryDate, err := getQueryDate(settings.period)
+func FetchRepos(client *ghb.Client, settings *Settings) ([]Repo, error) {
+	queryDate, err := getQueryDate(settings.since)
 	if err != nil {
 		return nil, err
 	}
@@ -39,6 +38,7 @@ func GetRepos(client *ghb.Client, settings *Settings) ([]Repo, error) {
 			Description: getStr(repo.Description, ""),
 			Language:    getStr(repo.Language, ""),
 			Stars:       getInt(repo.StargazersCount, 0),
+			StarsToday:  -1, // Not available via GH Search API
 		}
 	}
 	return repos, nil
@@ -63,19 +63,14 @@ func getInt(intptr *int, defaultValue int) int {
 func getQueryDate(period string) (string, error) {
 	currentDate := time.Now()
 	switch period {
-	case "day":
+	case "daily":
 		return currentDate.AddDate(0, 0, -1).Format("2006-01-02"), nil
-	case "week":
+	case "weekly":
 		return currentDate.AddDate(0, 0, -7).Format("2006-01-02"), nil
-	case "month":
+	case "monthly":
 		return currentDate.AddDate(0, 0, -31).Format("2006-01-02"), nil
 	default:
-		// try parse value as int in case there is a custom period
-		i, err := strconv.Atoi(period)
-		if err != nil {
-			return "", fmt.Errorf("unknown period value: %s", period)
-		}
-		return currentDate.AddDate(0, 0, -i).Format("2006-01-02"), nil
+		return "", fmt.Errorf("unknown since value: %s", period)
 	}
 }
 

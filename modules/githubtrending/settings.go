@@ -53,7 +53,7 @@ func NewSettingsFromYAML(name string, ymlConfig *config.Config, globalConfig *co
 
 	settings.colors.repo = ymlConfig.UString("colors.repo", "green")
 	settings.colors.lang = ymlConfig.UString("colors.lang", "orange")
-	settings.colors.stars = ymlConfig.UString("colors.lang", "yellow")
+	settings.colors.stars = ymlConfig.UString("colors.stars", "yellow")
 
 	settings.icons.stars = ymlConfig.UString("icons.stars", "⭐")
 

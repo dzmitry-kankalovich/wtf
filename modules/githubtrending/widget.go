@@ -20,6 +20,7 @@ const (
 	ShowNameDesc
 	ShowNameDescLang
 	ShowNameDescLangStars
+	ShowNameDescLangStarsDiff
 )
 
 type Widget struct {
@@ -89,7 +90,14 @@ func (widget *Widget) Render() {
 /* -------------------- Unexported Functions -------------------- */
 
 func (widget *Widget) content() (string, string, bool) {
-	title := fmt.Sprintf("%s - %s", widget.CommonSettings().Title, widget.settings.langs)
+	var title string
+	if len(widget.settings.langs) > 0 {
+		title = fmt.Sprintf("%s (%s) - %s", widget.CommonSettings().Title,
+			widget.settings.since, widget.settings.langs)
+	} else {
+		title = fmt.Sprintf("%s (%s) - %s", widget.CommonSettings().Title,
+			widget.settings.since, "all")
+	}
 
 	if widget.err != nil {
 		return title, widget.err.Error(), true
@@ -121,17 +129,32 @@ func (widget *Widget) content() (string, string, bool) {
 				row = appendText(row, widget.settings.colors.lang, repo.Language)
 			}
 			row = appendText(row, widget.settings.colors.repo, repo.Name)
+			row = append(row, fmt.Sprintf(
+				"[%s](%s%s)",
+				widget.settings.colors.stars,
+				widget.settings.icons.stars,
+				formatThousands(repo.Stars),
+			))
+			row = appendText(row, widget.RowColor(idx), repo.Description)
+		case ShowNameDescLangStarsDiff:
+			if repo.Language != "" {
+				row = appendText(row, widget.settings.colors.lang, repo.Language)
+			}
+			row = appendText(row, widget.settings.colors.repo, repo.Name)
 			if repo.StarsToday != -1 {
 				row = append(row, fmt.Sprintf(
-					"[%s](⭐️%s⬆️%s)",
+					"[%s](%s%s%s%s)",
 					widget.settings.colors.stars,
+					widget.settings.icons.stars,
 					formatThousands(repo.Stars),
+					widget.settings.icons.starsDiff,
 					formatThousands(repo.StarsToday),
 				))
 			} else {
 				row = append(row, fmt.Sprintf(
-					"[%s](⭐️%s)",
+					"[%s](%s%s)",
 					widget.settings.colors.stars,
+					widget.settings.icons.stars,
 					formatThousands(repo.Stars),
 				))
 			}
@@ -189,6 +212,8 @@ func rotateShowType(showtype ShowType) ShowType {
 		returnValue = ShowNameDescLang
 	case ShowNameDescLang:
 		returnValue = ShowNameDescLangStars
+	case ShowNameDescLangStars:
+		returnValue = ShowNameDescLangStarsDiff
 	}
 	return returnValue
 }

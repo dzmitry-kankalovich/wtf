@@ -13,11 +13,10 @@ import (
 
 // The Scraper works in a following way
 // - 1 query per lang, so [ts, js, python] will result in N=3 queries
-// - 1 query per spoken lang so [en, ru] will result in M=2 queries per programming lang
-// - Total queries would be N * M in the worst case when programming langs and spoken langs defined
-// - Sort results by stars
-// - Slice results up to limit
-// TODO figure out cache strategy for this abomination. LRU with EXP day?
+// - 1 query per spoken lang so [en, zh] will result in M=2 queries per programming lang
+// - Total queries would be N * M in the worst case when programming langs and spoken langs both explicitly defined
+// - Aggregate and sort results by trending factor: daily stars / total stars
+// - Slice results up to the specified limit
 
 const (
 	Url         = "https://github.com"
@@ -110,14 +109,13 @@ func scrape(c *colly.Collector, url string) ([]Repo, error) {
 		fullName := sanitize(e.ChildText("h2.h3 a"))
 		name := sanitize(strings.SplitN(fullName, "/", 2)[1])
 		link := sanitize(e.ChildAttr("h2.h3 a", "href"))
-		//lang := sanitize(e.ChildText("div.f6 span[itemprop=programmingLanguage]"))
 		desc := sanitize(e.ChildText("p"))
-		nodes := e.DOM.Find("div.f6").Children().Nodes
 
 		var lang string
 		var stars int
 		var starsToday int
 
+		nodes := e.DOM.Find("div.f6").Children().Nodes
 		for i, node := range nodes {
 			child := goquery.NewDocumentFromNode(node)
 			text := sanitize(child.Text())

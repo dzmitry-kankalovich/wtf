@@ -5,6 +5,7 @@ import (
 	"github.com/rivo/tview"
 	"github.com/wtfutil/wtf/modules/airbrake"
 	"github.com/wtfutil/wtf/modules/asana"
+	awscosts "github.com/wtfutil/wtf/modules/aws/costs"
 	"github.com/wtfutil/wtf/modules/azuredevops"
 	"github.com/wtfutil/wtf/modules/bamboohr"
 	"github.com/wtfutil/wtf/modules/bargraph"
@@ -121,6 +122,9 @@ func MakeWidget(
 	case "arpansagovau":
 		settings := arpansagovau.NewSettingsFromYAML(moduleName, moduleConfig, config)
 		widget = arpansagovau.NewWidget(tviewApp, redrawChan, settings)
+	case "awscosts":
+		settings := awscosts.NewSettingsFromYAML(moduleName, moduleConfig, config)
+		widget = awscosts.NewWidget(tviewApp, redrawChan, pages, settings)
 	case "asana":
 		settings := asana.NewSettingsFromYAML(moduleName, moduleConfig, config)
 		widget = asana.NewWidget(tviewApp, redrawChan, pages, settings)
